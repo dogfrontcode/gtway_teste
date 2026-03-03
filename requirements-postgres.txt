@@ -1,0 +1,3 @@
+# PostgreSQL driver - install only when using PostgreSQL
+# Requires: brew install postgresql (macOS) or apt install libpq-dev (Linux)
+psycopg2-binary==2.9.9
