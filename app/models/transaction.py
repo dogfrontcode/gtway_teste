@@ -17,6 +17,7 @@ class Transaction(db.Model):
     
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     tenant_id = db.Column(UUID(as_uuid=True), db.ForeignKey('tenants.id'), nullable=False, index=True)
+    product_id = db.Column(UUID(as_uuid=True), db.ForeignKey('products.id'), nullable=True, index=True)
     
     # Transaction Identifiers
     txid = db.Column(db.String(100), unique=True, nullable=False, index=True)  # Bank transaction ID

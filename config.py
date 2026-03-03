@@ -19,7 +19,7 @@ class Config:
     _sqlite_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'gateway.db')
     SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL', f'sqlite:///{_sqlite_path}')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    SQLALCHEMY_ECHO = FLASK_ENV == 'development'
+    SQLALCHEMY_ECHO = False  # Disabled for cleaner output
     
     # JWT
     JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'jwt-secret-key-change-in-production')

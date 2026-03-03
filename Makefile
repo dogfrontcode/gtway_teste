@@ -24,47 +24,56 @@ DOCKER_COMPOSE ?= docker-compose
 # =============================================================================
 
 help:
-	@echo "Payment Gateway - Comandos disponíveis"
+	@echo "💳 Payment Gateway - Comandos disponíveis"
 	@echo ""
-	@echo "  SETUP"
-	@echo "    install           Instala backend + frontend"
-	@echo "    install-backend   Instala dependências Python"
-	@echo "    install-frontend  Instala dependências Node (frontend)"
+	@echo "  🚀 INÍCIO RÁPIDO"
+	@echo "    setup            Setup completo (install + db-init + db-seed)"
+	@echo "    check            Verifica ambiente (Python, Node, Redis)"
+	@echo "    dev              Inicia backend + frontend em paralelo"
+	@echo "    dev-full         Setup + Dev (primeira vez)"
 	@echo ""
-	@echo "  DESENVOLVIMENTO"
-	@echo "    dev              Backend + Frontend (2 processos)"
+	@echo "  📦 INSTALAÇÃO"
+	@echo "    install          Instala backend + frontend"
+	@echo "    install-backend  Instala dependências Python"
+	@echo "    install-frontend Instala dependências Node"
+	@echo ""
+	@echo "  💻 DESENVOLVIMENTO"
 	@echo "    dev-backend      Apenas backend (porta $(PORT))"
 	@echo "    dev-frontend     Apenas frontend (porta 5173)"
 	@echo "    run              Backend com python run.py"
+	@echo "    celery           Inicia Celery worker"
+	@echo "    redis-local      Inicia Redis local"
 	@echo ""
-	@echo "  TESTES"
+	@echo "  🧪 TESTES"
 	@echo "    test             Testes completos com cobertura"
-	@echo "    test-fast        Testes sem cobertura (mais rápido)"
-	@echo "    test-cov         Testes + report HTML de cobertura"
+	@echo "    test-fast        Testes sem cobertura"
+	@echo "    test-cov         Testes + report HTML"
 	@echo ""
-	@echo "  BANCO DE DADOS"
-	@echo "    db-init          Cria tabelas (create_all)"
+	@echo "  💾 BANCO DE DADOS"
+	@echo "    db-init          Cria tabelas"
+	@echo "    db-seed          Popula dados iniciais"
 	@echo "    db-migrate       Cria nova migration"
 	@echo "    db-upgrade       Aplica migrations"
-	@echo "    db-seed          Popula dados iniciais (admin + tenant)"
-	@echo "    db-reset         Drop + init + seed (CUIDADO: apaga dados)"
+	@echo "    db-reset         Reset completo (APAGA TUDO)"
+	@echo "    db-backup        Backup do banco SQLite"
+	@echo "    db-shell         Shell interativo"
 	@echo ""
-	@echo "  PRODUÇÃO (Docker)"
-	@echo "    build            Build da imagem Docker"
-	@echo "    up               Sobe PostgreSQL + Redis + App + Celery"
+	@echo "  🐳 DOCKER"
+	@echo "    build            Build da imagem"
+	@echo "    up               Sobe todos os containers"
 	@echo "    down             Para containers"
 	@echo "    restart          Reinicia containers"
-	@echo "    logs             Mostra logs dos containers"
+	@echo "    logs             Mostra logs"
 	@echo ""
-	@echo "  PRODUÇÃO (Local)"
+	@echo "  🚀 PRODUÇÃO"
 	@echo "    prod             Inicia com Gunicorn"
 	@echo "    prod-stop        Para Gunicorn"
+	@echo "    frontend-build   Build do frontend"
 	@echo ""
-	@echo "  UTILITÁRIOS"
+	@echo "  🛠️  UTILITÁRIOS"
 	@echo "    lint             Lint backend + frontend"
-	@echo "    lint-frontend    Lint apenas frontend"
-	@echo "    clean            Remove cache, cobertura, builds (mantém DB)"
-	@echo "    fclean           Limpeza completa: clean + banco de dados local"
+	@echo "    clean            Remove cache (mantém DB)"
+	@echo "    fclean           Limpeza completa"
 
 # =============================================================================
 # SETUP
@@ -87,7 +96,12 @@ install-frontend:
 # DESENVOLVIMENTO
 # =============================================================================
 
-dev: dev-backend dev-frontend
+dev:
+	@echo "🚀 Iniciando ambiente de desenvolvimento..."
+	@echo "  Backend: http://localhost:$(PORT)"
+	@echo "  Frontend: http://localhost:5173"
+	@echo ""
+	@make -j2 dev-backend dev-frontend
 
 dev-backend:
 	@echo "Iniciando backend em http://localhost:$(PORT)"
@@ -97,9 +111,21 @@ dev-frontend:
 	@echo "Iniciando frontend em http://localhost:5173"
 	cd frontend && npm run dev
 
+dev-full: db-init db-seed
+	@echo "🚀 Setup completo + Dev"
+	@make dev
+
 run:
 	@echo "Backend: http://localhost:$(PORT)"
 	FLASK_APP=$(FLASK_APP) PORT=$(PORT) $(PYTHON) run.py
+
+celery:
+	@echo "Iniciando Celery worker..."
+	celery -A celery_worker.celery worker --loglevel=info
+
+redis-local:
+	@echo "Iniciando Redis local..."
+	redis-server
 
 # =============================================================================
 # TESTES
@@ -144,12 +170,22 @@ db-seed:
 	FLASK_APP=$(FLASK_APP) $(PYTHON) -m flask seed-db
 	@echo "✓ Seed concluído"
 
-db-reset: db-init db-seed
-	@echo "✓ Banco resetado (SQLite: deletar gateway.db antes para reset completo)"
+db-reset:
+	@echo "⚠️  ATENÇÃO: Isso vai apagar TODOS os dados!"
+	@read -p "Tem certeza? (y/N): " confirm && [ "$$confirm" = "y" ]
+	@rm -f gateway.db
+	@make db-init db-seed
+	@echo "✓ Banco resetado completamente"
 
 db-shell:
 	@echo "Abrindo shell do banco..."
 	$(PYTHON) -c "from run import app, db; from app.models import *; app.app_context().push(); import code; code.interact(local=locals())"
+
+db-backup:
+	@echo "Fazendo backup do banco..."
+	@mkdir -p backups
+	@cp gateway.db backups/gateway_$(shell date +%Y%m%d_%H%M%S).db
+	@echo "✓ Backup salvo em backups/"
 
 # =============================================================================
 # PRODUÇÃO - DOCKER
@@ -226,5 +262,24 @@ clean:
 fclean: clean
 	@echo "Removendo banco de dados local e arquivos de teste..."
 	rm -f gateway.db *.sqlite *.sqlite3
-	rm -rf .tox/
+	rm -rf .tox/ backups/
 	@echo "✓ Limpeza completa. Execute 'make db-init db-seed' para recriar o banco."
+
+setup: install db-init db-seed
+	@echo ""
+	@echo "✅ Setup completo!"
+	@echo ""
+	@echo "Para iniciar o desenvolvimento:"
+	@echo "  make dev"
+	@echo ""
+	@echo "Credenciais de login:"
+	@echo "  Admin: admin@gateway.com / admin123"
+	@echo "  Tenant: user@samplestore.com / user123"
+
+check:
+	@echo "🔍 Verificando ambiente..."
+	@$(PYTHON) --version
+	@echo "Flask: $(shell pip show flask 2>/dev/null | grep Version || echo 'não instalado')"
+	@echo "Node: $(shell node --version 2>/dev/null || echo 'não instalado')"
+	@echo "Redis: $(shell redis-cli --version 2>/dev/null || echo 'não instalado')"
+	@echo "✓ Verificação concluída"

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { api } from '../api';
 import { useAuth } from '../AuthContext';
+import CreateTenantModal from '../components/CreateTenantModal';
 
 export default function Admin() {
   const { isAdmin } = useAuth();
@@ -14,6 +15,7 @@ export default function Admin() {
   const [tenantFilter, setTenantFilter] = useState('');
   const [total, setTotal] = useState(0);
   const [activeTab, setActiveTab] = useState('transactions');
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   const loadDashboard = async () => {
     const data = await api.admin.getDashboard();
@@ -32,6 +34,12 @@ export default function Admin() {
   const loadTenants = async () => {
     const data = await api.tenants.list(1, 100);
     setTenants(data.tenants || []);
+  };
+
+  const handleCreateTenant = async (data) => {
+    await api.tenants.create(data);
+    await loadTenants();
+    await loadDashboard();
   };
 
   useEffect(() => {
@@ -137,8 +145,15 @@ export default function Admin() {
 
       {activeTab === 'tenants' && (
         <div className="rounded-xl bg-slate-800/50 border border-slate-700 overflow-hidden">
-          <div className="p-4 border-b border-slate-700">
+          <div className="p-4 border-b border-slate-700 flex justify-between items-center">
             <h2 className="text-lg font-semibold text-slate-200">Tenants</h2>
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium transition flex items-center gap-2"
+            >
+              <span className="text-lg">+</span>
+              Criar Tenant
+            </button>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -259,6 +274,12 @@ export default function Admin() {
           </div>
         </>
       )}
+
+      <CreateTenantModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSuccess={handleCreateTenant}
+      />
     </div>
   );
 }

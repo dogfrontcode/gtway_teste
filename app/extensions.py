@@ -2,6 +2,7 @@
 Flask extensions initialization.
 Extensions are initialized here and then initialized with the app in the factory.
 """
+import warnings
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_jwt_extended import JWTManager
@@ -10,6 +11,9 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flasgger import Swagger
 from celery import Celery
+
+# Suppress Flask-Limiter warning about in-memory storage
+warnings.filterwarnings('ignore', message='.*in-memory storage.*')
 
 # Initialize extensions
 db = SQLAlchemy()

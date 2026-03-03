@@ -118,6 +118,20 @@ class AuthService:
             return None, f"Registration failed: {str(e)}"
     
     @staticmethod
+    def create_token_for_tenant(user: User, tenant_id: Optional[uuid.UUID]) -> str:
+        """
+        Gera access token com tenant_id específico.
+        Usado para troca de conta PJ (admin ou usuário com múltiplos tenants).
+        """
+        identity = str(user.id)
+        additional_claims = {
+            'email': user.email,
+            'role': user.role,
+            'tenant_id': str(tenant_id) if tenant_id else None
+        }
+        return create_access_token(identity=identity, additional_claims=additional_claims)
+    
+    @staticmethod
     def refresh_access_token(user_id: str, additional_claims: Dict) -> str:
         """
         Generate new access token from refresh token.

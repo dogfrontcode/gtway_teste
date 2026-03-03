@@ -33,10 +33,23 @@ export const api = {
       body: JSON.stringify({ email, password }),
     }),
     me: () => request('/auth/me'),
+    switchTenant: (tenantId) => request('/auth/switch-tenant', {
+      method: 'POST',
+      body: JSON.stringify({ tenant_id: tenantId }),
+    }),
   },
   tenants: {
     list: (page = 1, perPage = 20) => request(`/tenants?page=${page}&per_page=${perPage}`),
     get: (id) => request(`/tenants/${id}`),
+    create: (data) => request('/tenants', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+    update: (id, data) => request(`/tenants/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+    delete: (id) => request(`/tenants/${id}`, { method: 'DELETE' }),
   },
   payments: {
     createCharge: (data) => request('/payments/charge', {
@@ -60,6 +73,27 @@ export const api = {
       const q = new URLSearchParams(params).toString();
       return request(`/admin/transactions${q ? '?' + q : ''}`);
     },
+  },
+  products: {
+    create: (data) => request('/products', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+    list: (params = {}) => {
+      const q = new URLSearchParams(params).toString();
+      return request(`/products${q ? '?' + q : ''}`);
+    },
+    get: (id) => request(`/products/${id}`),
+    update: (id, data) => request(`/products/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+    delete: (id) => request(`/products/${id}`, { method: 'DELETE' }),
+    getCategories: () => request('/products/categories'),
+    createCharge: (id, data = {}) => request(`/products/${id}/charge`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
   },
 };
 

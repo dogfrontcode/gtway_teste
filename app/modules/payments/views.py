@@ -4,20 +4,11 @@ Payment routes/views.
 from flask import request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt
 from marshmallow import ValidationError
-from datetime import datetime
 from app.modules.payments import payments_bp
 from app.modules.payments.services import PaymentService
-from app.modules.tenants.services import TenantService
+from app.utils.auth_helpers import get_current_tenant, require_tenant, parse_date_range
 from app.schemas.transaction_schemas import TransactionCreateSchema
 from app.extensions import limiter
-
-
-def get_current_tenant(claims: dict):
-    """Get current tenant from JWT claims."""
-    tenant_id = claims.get('tenant_id')
-    if not tenant_id:
-        return None
-    return TenantService.get_tenant(tenant_id)
 
 
 @payments_bp.route('/charge', methods=['POST'])
@@ -152,19 +143,9 @@ def list_transactions():
         
         # Parse filters
         status = request.args.get('status')
-        start_date_str = request.args.get('start_date')
-        end_date_str = request.args.get('end_date')
+        start_date, end_date = parse_date_range(request)
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 20, type=int)
-        
-        start_date = None
-        end_date = None
-        
-        if start_date_str:
-            start_date = datetime.fromisoformat(start_date_str.replace('Z', '+00:00'))
-        
-        if end_date_str:
-            end_date = datetime.fromisoformat(end_date_str.replace('Z', '+00:00'))
         
         # Get transactions
         transactions, total = PaymentService.list_transactions(
@@ -425,20 +406,7 @@ def get_statistics():
         if not tenant:
             return jsonify({'error': 'No tenant associated with this user'}), 403
         
-        # Parse date filters
-        start_date_str = request.args.get('start_date')
-        end_date_str = request.args.get('end_date')
-        
-        start_date = None
-        end_date = None
-        
-        if start_date_str:
-            start_date = datetime.fromisoformat(start_date_str.replace('Z', '+00:00'))
-        
-        if end_date_str:
-            end_date = datetime.fromisoformat(end_date_str.replace('Z', '+00:00'))
-        
-        # Get statistics
+        start_date, end_date = parse_date_range(request)
         stats = PaymentService.get_payment_statistics(tenant, start_date, end_date)
         
         return jsonify({

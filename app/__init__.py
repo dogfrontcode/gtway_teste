@@ -43,6 +43,10 @@ def create_app(config_name: str = None) -> Flask:
     # Initialize Celery
     init_celery(app, celery)
     
+    # Setup middleware (custom logging)
+    from app.middleware import setup_middleware
+    setup_middleware(app)
+    
     return app
 
 
@@ -69,12 +73,14 @@ def register_blueprints(app: Flask):
     from app.modules.payments import payments_bp
     from app.modules.webhooks import webhooks_bp
     from app.modules.admin import admin_bp
+    from app.modules.products import products_bp
     
     app.register_blueprint(auth_bp)
     app.register_blueprint(tenants_bp)
     app.register_blueprint(payments_bp)
     app.register_blueprint(webhooks_bp)
     app.register_blueprint(admin_bp)
+    app.register_blueprint(products_bp)
     
     # Root endpoint
     @app.route('/')

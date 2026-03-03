@@ -2,8 +2,10 @@
 Pytest fixtures and configuration.
 """
 import pytest
+from decimal import Decimal
 from app import create_app, db
 from app.models import User, Tenant
+from app.models.product import Product
 
 
 @pytest.fixture(scope='function')
@@ -98,3 +100,30 @@ def tenant_token(client, tenant_user):
 def get_auth_headers(token):
     """Helper to get authorization headers."""
     return {'Authorization': f'Bearer {token}'}
+
+
+@pytest.fixture
+def tenant(app, sample_tenant):
+    """Alias for sample_tenant."""
+    return sample_tenant
+
+
+@pytest.fixture
+def product(app, sample_tenant):
+    """Create sample product for testing."""
+    with app.app_context():
+        product = Product(
+            tenant_id=sample_tenant.id,
+            name='Test Product',
+            description='Test description',
+            sku='TEST-PROD-001',
+            price=Decimal('99.99'),
+            category='Test',
+            track_stock=True,
+            stock_quantity=100,
+            is_active=True
+        )
+        db.session.add(product)
+        db.session.commit()
+        db.session.refresh(product)
+        yield product

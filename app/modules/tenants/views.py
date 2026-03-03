@@ -7,19 +7,8 @@ from marshmallow import ValidationError
 from app.modules.tenants import tenants_bp
 from app.modules.tenants.services import TenantService
 from app.schemas.tenant_schemas import TenantCreateSchema, TenantUpdateSchema
+from app.utils.auth_helpers import check_admin_access, check_tenant_access, get_current_tenant
 from app.extensions import limiter
-
-
-def check_admin_access(claims: dict) -> bool:
-    """Check if user has admin access."""
-    return claims.get('role') == 'admin'
-
-
-def check_tenant_access(claims: dict, tenant_id: str) -> bool:
-    """Check if user has access to specific tenant."""
-    if claims.get('role') == 'admin':
-        return True
-    return str(claims.get('tenant_id')) == str(tenant_id)
 
 
 @tenants_bp.route('', methods=['POST'])

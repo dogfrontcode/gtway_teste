@@ -48,6 +48,7 @@ class Tenant(db.Model):
     # Relationships
     users = db.relationship('User', backref='tenant', lazy='dynamic', cascade='all, delete-orphan')
     transactions = db.relationship('Transaction', backref='tenant', lazy='dynamic', cascade='all, delete-orphan')
+    products = db.relationship('Product', backref='tenant', lazy='dynamic', cascade='all, delete-orphan')
     
     def __repr__(self):
         return f'<Tenant {self.name} ({self.slug})>'

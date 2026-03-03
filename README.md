@@ -2,6 +2,15 @@
 
 Um gateway de pagamentos white label completo desenvolvido em Python/Flask, projetado para ser totalmente desacoplado do frontend e permitir multitenancy (múltiplos clientes utilizando a mesma infraestrutura).
 
+## 📚 Documentação Disponível
+
+- 🚀 **[LEIA_PRIMEIRO.md](./LEIA_PRIMEIRO.md)** ⭐ Comece aqui!
+- 📖 **[QUICKSTART.md](./QUICKSTART.md)** - Guia de 5 minutos
+- 🛍️ **[PRODUCTS_QUICKSTART.md](./PRODUCTS_QUICKSTART.md)** - Sistema de produtos
+- 📊 **[ANALYSIS.md](./ANALYSIS.md)** - Análise técnica completa
+- 🔧 **[API_EXAMPLES.md](./API_EXAMPLES.md)** - Exemplos de uso da API
+- 📝 **[FINAL_SUMMARY.md](./FINAL_SUMMARY.md)** - Resumo final de melhorias
+
 ## 🚀 Características
 
 ### Core Features
@@ -11,6 +20,11 @@ Um gateway de pagamentos white label completo desenvolvido em Python/Flask, proj
 - **API RESTful**: Backend 100% API, consumível por qualquer frontend
 - **Autenticação JWT**: Sistema robusto de autenticação com tokens de acesso e refresh
 - **Integração PIX**: Suporte para pagamentos via PIX (extensível para outros métodos)
+- **Sistema de Produtos** 🆕:
+  - Catálogo de produtos por tenant
+  - Criar cobranças direto de produtos
+  - Controle de estoque opcional
+  - Categorização e filtros
 - **Sistema de Webhooks**: 
   - Recebe notificações dos bancos/PSPs
   - Envia notificações para os tenants com retry automático
@@ -36,22 +50,43 @@ Um gateway de pagamentos white label completo desenvolvido em Python/Flask, proj
 - PostgreSQL (se não usar Docker)
 - Redis (se não usar Docker)
 
-## ⚡ Makefile
+## ⚡ Início Rápido
 
-Para facilitar o desenvolvimento, use o Makefile:
+**Quer começar AGORA?** Siga o [Guia de Início Rápido](./QUICKSTART.md) (5 minutos)
+
+### Setup Completo em 1 Comando
 
 ```bash
-make help          # Lista todos os comandos
-make install       # Instala dependências
-make db-init       # Cria tabelas
-make db-seed       # Popula dados (admin + tenant)
-make dev-backend   # Inicia backend (porta 5001)
-make dev-frontend  # Inicia frontend (porta 5173)
-make test          # Testes com cobertura
-make test-fast     # Testes rápidos
-make up            # Docker: PostgreSQL + Redis + App
-make prod          # Gunicorn (produção local)
+make setup
 ```
+
+Isso instala tudo, cria o banco e popula dados de exemplo!
+
+### Iniciar Desenvolvimento
+
+```bash
+make dev    # Inicia backend + frontend em paralelo
+```
+
+Acesse:
+- **Backend**: http://localhost:5001
+- **Frontend**: http://localhost:5173
+- **Swagger**: http://localhost:5001/swagger/
+
+### Comandos Principais
+
+```bash
+make help          # Lista TODOS os comandos
+make setup         # Setup completo (install + db-init + db-seed)
+make check         # Verifica ambiente (Python, Node, Redis)
+make dev           # Backend + Frontend em paralelo
+make dev-full      # Setup + Dev (primeira vez)
+make celery        # Inicia Celery worker
+make test          # Testes com cobertura
+make db-backup     # Backup do banco SQLite
+```
+
+**Ver todos**: `make help`
 
 ## 🔧 Instalação e Configuração
 
@@ -140,11 +175,13 @@ payment-gateway/
 │   ├── models/                  # Database models
 │   │   ├── tenant.py
 │   │   ├── user.py
+│   │   ├── product.py          # 🆕 Products
 │   │   ├── transaction.py
 │   │   └── webhook_attempt.py
 │   ├── modules/                 # Feature modules
 │   │   ├── auth/               # Authentication
 │   │   ├── tenants/            # Tenant management
+│   │   ├── products/           # 🆕 Product management
 │   │   ├── payments/           # Payment processing
 │   │   │   └── providers/      # Bank providers
 │   │   ├── webhooks/           # Webhook handling
@@ -220,6 +257,45 @@ Inclua o token no header `Authorization`:
 GET /api/v1/payments/transactions
 Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGc...
 ```
+
+## 🎨 Painel Admin - Novo!
+
+Agora você pode criar tenants diretamente pelo painel admin:
+
+1. Acesse http://localhost:5173
+2. Login: `admin@gateway.com` / `admin123`
+3. Vá para "Admin"
+4. Clique em **"Criar Tenant"**
+5. Preencha o formulário:
+   - Informações básicas (nome, email, CNPJ)
+   - Configuração de pagamento (PIX, provider, webhook)
+   - White Label (cores, logo)
+
+**Funcionalidades**:
+- ✅ Criar tenants com validação
+- ✅ Seletor de cores para white label
+- ✅ Validação de CNPJ automática
+- ✅ Lista e gerencia todos os tenants
+- ✅ Dashboard com estatísticas em tempo real
+
+## 🛍️ Sistema de Produtos - Novo!
+
+Gerenciamento completo de produtos com interface visual:
+
+1. Acesse http://localhost:5173
+2. Login como tenant: `user@samplestore.com` / `user123`
+3. Menu → **"Produtos"**
+4. Clique em **"+ Criar Produto"**
+
+**Funcionalidades**:
+- ✅ Criar produtos com nome, preço, categoria, imagem
+- ✅ Controle de estoque opcional
+- ✅ Criar cobranças PIX direto do produto (1 clique)
+- ✅ Filtrar por categoria
+- ✅ Grid visual com cards
+- ✅ Cálculo automático de total (preço × quantidade)
+
+**Ver documentação completa**: [PRODUCTS_FEATURE.md](./PRODUCTS_FEATURE.md)
 
 ## 💼 Uso da API
 
@@ -548,16 +624,35 @@ Para dúvidas ou problemas:
 - Abra uma issue no GitHub
 - Email: support@paymentgateway.com
 
+## 📖 Documentação Adicional
+
+- 🚀 **[Guia de Início Rápido](./QUICKSTART.md)** - Comece em 5 minutos
+- 📊 **[Análise Técnica Completa](./ANALYSIS.md)** - Arquitetura e recomendações
+- 🔧 **[Exemplos de API](./API_EXAMPLES.md)** - Exemplos práticos de uso
+- 🤝 **[Guia de Contribuição](./CONTRIBUTING.md)** - Como contribuir
+
 ## 🎯 Roadmap
 
+### Implementado Recentemente ✅
+- [x] Dashboard administrativo (frontend)
+- [x] Criar tenants pelo painel admin
+- [x] **Sistema de produtos completo** 🆕
+- [x] **Criar cobranças de produtos em 1 clique** 🆕
+- [x] Validação de CNPJ/CPF
+- [x] Makefile melhorado com setup simplificado
+- [x] Controle de estoque automático
+
+### Próximos Passos
+- [ ] Edição de produtos (modal)
+- [ ] Upload de imagens de produtos
 - [ ] Suporte a cartão de crédito
-- [ ] Integração com mais bancos brasileiros
+- [ ] Integração com mais bancos brasileiros (Bradesco, Inter, OpenPix)
 - [ ] Split de pagamentos (marketplace)
 - [ ] Gestão de assinaturas (recorrência)
-- [ ] Dashboard administrativo (frontend)
-- [ ] API de relatórios avançados
+- [ ] API de relatórios avançados (export CSV/Excel)
+- [ ] Notificações por email/SMS
 - [ ] Suporte a multi-currency
-- [ ] SDK para diferentes linguagens
+- [ ] SDK para diferentes linguagens (Python, Node.js, PHP)
 
 ---
 

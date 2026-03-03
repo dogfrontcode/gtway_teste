@@ -5,6 +5,7 @@ const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
+  const [activeTenant, setActiveTenant] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const login = async (email, password) => {
@@ -12,6 +13,7 @@ export function AuthProvider({ children }) {
     localStorage.setItem('access_token', data.access_token);
     if (data.refresh_token) localStorage.setItem('refresh_token', data.refresh_token);
     setUser(data.user);
+    setActiveTenant(data.user?.tenant_id ? { id: data.user.tenant_id } : null);  // tenant users
     return data.user;
   };
 
@@ -19,6 +21,14 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
     setUser(null);
+    setActiveTenant(null);
+  };
+
+  const switchTenant = async (tenantId) => {
+    const data = await api.auth.switchTenant(tenantId);
+    localStorage.setItem('access_token', data.access_token);
+    setActiveTenant(data.tenant || (data.tenant_id ? { id: data.tenant_id } : null));
+    return data;
   };
 
   const refreshUser = async () => {
@@ -26,6 +36,7 @@ export function AuthProvider({ children }) {
     try {
       const data = await api.auth.me();
       setUser(data.user);
+      setActiveTenant(data.active_tenant || null);
     } catch {
       logout();
     } finally {
@@ -40,7 +51,7 @@ export function AuthProvider({ children }) {
   const isAdmin = user?.role === 'admin';
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, refreshUser, isAdmin }}>
+    <AuthContext.Provider value={{ user, activeTenant, loading, login, logout, refreshUser, switchTenant, isAdmin }}>
       {children}
     </AuthContext.Provider>
   );

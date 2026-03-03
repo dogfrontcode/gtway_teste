@@ -8,6 +8,7 @@ from app.extensions import db
 from app.models import Tenant, User
 from app.utils.security import encrypt_data, decrypt_data
 from app.utils.validators import sanitize_slug
+from app.utils.cnpj_validator import validate_cnpj
 
 
 class TenantService:
@@ -32,6 +33,10 @@ class TenantService:
             
             # Check if CNPJ is unique (if provided)
             if data.get('cnpj'):
+                # Validate CNPJ format
+                if not validate_cnpj(data['cnpj']):
+                    return None, "Invalid CNPJ format"
+                
                 if Tenant.query.filter_by(cnpj=data['cnpj']).first():
                     return None, "CNPJ already registered"
             
@@ -71,6 +76,10 @@ class TenantService:
             
             db.session.add(tenant)
             db.session.commit()
+            
+            # Custom log
+            from app.utils.logger import log_success
+            log_success(f"Tenant criado: {tenant.slug}")
             
             current_app.logger.info(f"Tenant created: {tenant.slug} ({tenant.id})")
             return tenant, None

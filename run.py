@@ -4,6 +4,7 @@ Application entry point.
 import os
 from app import create_app, db
 from app.models import User, Tenant, Transaction, WebhookAttempt
+from app.models.product import Product
 
 # Create Flask application
 app = create_app()
@@ -20,7 +21,8 @@ def make_shell_context():
         'User': User,
         'Tenant': Tenant,
         'Transaction': Transaction,
-        'WebhookAttempt': WebhookAttempt
+        'WebhookAttempt': WebhookAttempt,
+        'Product': Product
     }
 
 
@@ -81,7 +83,7 @@ def seed_db():
         'name': 'Sample Store',
         'slug': 'sample-store',
         'legal_name': 'Sample Store LTDA',
-        'cnpj': '12345678000100',
+        'cnpj': '11222333000181',  # Valid CNPJ for testing
         'email': 'contact@samplestore.com',
         'phone': '+5511999999999',
         'pix_key': 'contact@samplestore.com',
@@ -123,6 +125,47 @@ def seed_db():
     else:
         print('✓ Tenant user created')
     
+    # Create sample products
+    from app.modules.products.services import ProductService
+    from decimal import Decimal
+    
+    sample_products = [
+        {
+            'name': 'Curso de Python Completo',
+            'description': 'Aprenda Python do zero ao avançado com projetos práticos',
+            'sku': 'CURSO-PY-001',
+            'price': Decimal('197.00'),
+            'category': 'Cursos',
+            'image_url': 'https://images.unsplash.com/photo-1526379095098-d400fd0bf935?w=400',
+            'track_stock': False,
+        },
+        {
+            'name': 'Ebook: APIs REST com Flask',
+            'description': 'Guia completo para criar APIs profissionais',
+            'sku': 'EBOOK-FLASK-001',
+            'price': Decimal('49.90'),
+            'category': 'Ebooks',
+            'track_stock': True,
+            'stock_quantity': 1000,
+        },
+        {
+            'name': 'Consultoria 1 hora',
+            'description': 'Consultoria técnica individual de 1 hora',
+            'sku': 'CONSULT-1H',
+            'price': Decimal('250.00'),
+            'category': 'Consultoria',
+            'track_stock': False,
+        },
+    ]
+    
+    for prod_data in sample_products:
+        product, error = ProductService.create_product(tenant, prod_data)
+        if error:
+            if 'already exists' not in error:
+                print(f'  Warning: {error}')
+        else:
+            print(f'  ✓ Product created: {product.name}')
+    
     print('\nDatabase seeded successfully!')
     print('\nLogin credentials:')
     print('  Admin: admin@gateway.com / admin123')
@@ -131,5 +174,23 @@ def seed_db():
 
 if __name__ == '__main__':
     import os
+    import warnings
+    from app.utils.logger import log_startup_banner
+    
     port = int(os.getenv('PORT', 5001))
-    app.run(debug=True, host='0.0.0.0', port=port)
+    
+    # Disable warnings
+    warnings.filterwarnings('ignore', category=UserWarning)
+    warnings.filterwarnings('ignore', message='.*in-memory storage.*')
+    
+    # Disable verbose logging
+    import logging
+    logging.getLogger('werkzeug').setLevel(logging.ERROR)
+    logging.getLogger('sqlalchemy.engine').setLevel(logging.WARNING)
+    
+    # Print startup banner
+    print("\n")
+    log_startup_banner()
+    print("\n")
+    
+    app.run(debug=True, host='0.0.0.0', port=port, use_reloader=True)

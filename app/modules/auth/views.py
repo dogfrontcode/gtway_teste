@@ -198,16 +198,103 @@ def get_current_user():
         description: User not found
     """
     try:
+        from app.utils.auth_helpers import get_current_tenant
+        
         identity = get_jwt_identity()
         user = AuthService.get_user_by_id(identity)
         
         if not user:
             return jsonify({'error': 'User not found'}), 404
         
-        return jsonify({'user': user.to_dict()}), 200
+        claims = get_jwt()
+        tenant = get_current_tenant(claims)
+        response = {'user': user.to_dict()}
+        if tenant:
+            response['active_tenant'] = tenant.to_dict()
+        return jsonify(response), 200
         
     except Exception as e:
         return jsonify({'error': 'Failed to get user', 'details': str(e)}), 500
+
+
+@auth_bp.route('/switch-tenant', methods=['POST'])
+@jwt_required()
+def switch_tenant():
+    """
+    Troca o tenant ativo (contexto PJ) do usuário.
+    Admin pode trocar para qualquer tenant. Usuário comum só para seu próprio tenant.
+    ---
+    tags:
+      - Authentication
+    security:
+      - Bearer: []
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - tenant_id
+          properties:
+            tenant_id:
+              type: string
+              format: uuid
+              description: ID do tenant ou null para contexto admin (sem tenant)
+    responses:
+      200:
+        description: Novo token com tenant atualizado
+      403:
+        description: Sem permissão para acessar o tenant
+      404:
+        description: Tenant não encontrado
+    """
+    try:
+        from app.utils.auth_helpers import check_tenant_access
+        from app.modules.tenants.services import TenantService
+        
+        claims = get_jwt()
+        identity = get_jwt_identity()
+        user = AuthService.get_user_by_id(identity)
+        
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        data = request.json or {}
+        tenant_id_raw = data.get('tenant_id')
+        
+        # tenant_id null/omitido = admin voltando ao modo global (sem tenant ativo)
+        if tenant_id_raw is None or tenant_id_raw == '':
+            if claims.get('role') != 'admin':
+                return jsonify({'error': 'Only admins can clear tenant context'}), 403
+            new_token = AuthService.create_token_for_tenant(user, None)
+            return jsonify({
+                'access_token': new_token,
+                'tenant_id': None,
+                'message': 'Switched to global admin context'
+            }), 200
+        
+        # Validar tenant existe e está ativo
+        tenant = TenantService.get_tenant(tenant_id_raw)
+        if not tenant:
+            return jsonify({'error': 'Tenant not found'}), 404
+        if not tenant.is_active:
+            return jsonify({'error': 'Tenant is inactive'}), 400
+        
+        # Verificar permissão
+        if not check_tenant_access(claims, tenant.id):
+            return jsonify({'error': 'Access denied to this tenant'}), 403
+        
+        new_token = AuthService.create_token_for_tenant(user, tenant.id)
+        return jsonify({
+            'access_token': new_token,
+            'tenant_id': str(tenant.id),
+            'tenant': tenant.to_dict(),
+            'message': f'Switched to {tenant.name}'
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': 'Switch tenant failed', 'details': str(e)}), 500
 
 
 @auth_bp.route('/change-password', methods=['POST'])

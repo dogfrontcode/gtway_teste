@@ -22,7 +22,8 @@ class PaymentService:
         amount: Decimal,
         description: Optional[str] = None,
         external_id: Optional[str] = None,
-        expires_in_minutes: int = 60
+        expires_in_minutes: int = 60,
+        product_id: Optional[uuid.UUID] = None
     ) -> Tuple[Optional[Transaction], Optional[str]]:
         """
         Create a new payment charge.
@@ -65,6 +66,7 @@ class PaymentService:
             # Create transaction record
             transaction = Transaction(
                 tenant_id=tenant.id,
+                product_id=product_id,
                 txid=charge_data['txid'],
                 external_id=external_id,
                 amount=amount,
@@ -80,6 +82,10 @@ class PaymentService:
             
             db.session.add(transaction)
             db.session.commit()
+            
+            # Custom log for transactions
+            from app.utils.logger import log_transaction
+            log_transaction('Cobrança criada', transaction.txid, float(amount), tenant.slug)
             
             current_app.logger.info(
                 f"Charge created: {transaction.txid} for tenant {tenant.slug} - "

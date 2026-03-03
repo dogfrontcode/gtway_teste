@@ -3,16 +3,12 @@ Admin routes/views.
 """
 from flask import request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt
-from datetime import datetime, timedelta
+from datetime import datetime
 from sqlalchemy import func, text
 from app.modules.admin import admin_bp
 from app.extensions import db
 from app.models import Tenant, User, Transaction, WebhookAttempt
-
-
-def check_admin_access(claims: dict) -> bool:
-    """Check if user has admin access."""
-    return claims.get('role') == 'admin'
+from app.utils.auth_helpers import check_admin_access
 
 
 @admin_bp.route('/dashboard', methods=['GET'])
